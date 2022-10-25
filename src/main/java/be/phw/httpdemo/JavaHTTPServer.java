@@ -71,8 +71,9 @@ public class JavaHTTPServer implements Runnable{
 				}
 				
 				// we return the not supported file to the client
-				File file = new File(WEB_ROOT, METHOD_NOT_SUPPORTED);
-				int fileLength = (int) file.length();
+				URL resource = getClass().getClassLoader().getResource(METHOD_NOT_SUPPORTED);
+                File file =  new File(resource.toURI());
+                int fileLength = (int) file.length();
 				String contentMimeType = "text/html";
 				//read content to return to client
 				byte[] fileData = readFileData(file, fileLength);
@@ -102,13 +103,12 @@ public class JavaHTTPServer implements Runnable{
 					System.out.println("File " + fileRequested + " requested ");
 				}
 				
-				File file = new File(fileRequested);
                 URL resource = getClass().getClassLoader().getResource(fileRequested);
                 if (resource == null) {
-                    throw new IllegalArgumentException("file not found!");
-                } else {
-                    file =  new File(resource.toURI());
+                    throw new FileNotFoundException("file not found!");
                 }
+                File file =  new File(resource.toURI());
+            
 
 				int fileLength = (int) file.length();
 				String content = getContentType(fileRequested);
