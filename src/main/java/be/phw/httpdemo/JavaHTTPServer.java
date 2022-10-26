@@ -13,21 +13,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.StringTokenizer;
 
-// The tutorial can be found just here on the SSaurel's Blog : 
-// https://www.ssaurel.com/blog/create-a-simple-http-web-server-in-java
-// Each Client Connection will be managed in a dedicated Thread
 public class JavaHTTPServer implements Runnable{ 
 	
-	static final String WEB_ROOT = "/";
 	static final String DEFAULT_FILE = "index.html";
 	static final String FILE_NOT_FOUND = "404.html";
-	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
-	// port to listen connection
-	static final int PORT = 8080;
-	
+
 	// verbose mode
 	static final boolean verbose = true;
 	
@@ -60,37 +54,9 @@ public class JavaHTTPServer implements Runnable{
 			// we get file requested
 			fileRequested = parse.nextToken().toLowerCase();
 
-            if (verbose) {
-                System.out.println("Request received : " + input);
-            }
-			
+
 			// we support only GET and HEAD methods, we check
-			if (!method.equals("GET")  &&  !method.equals("HEAD")) {
-				if (verbose) {
-					System.out.println("501 Not Implemented : " + method + " method.");
-				}
-				
-				// we return the not supported file to the client
-				URL resource = getClass().getClassLoader().getResource(METHOD_NOT_SUPPORTED);
-                File file =  new File(resource.toURI());
-                int fileLength = (int) file.length();
-				String contentMimeType = "text/html";
-				//read content to return to client
-				byte[] fileData = readFileData(file, fileLength);
-					
-				// we send HTTP Headers with data to client
-				out.println("HTTP/1.1 501 Not Implemented");
-				out.println("Server: Java HTTP Server from SSaurel : 1.0");
-				out.println("Date: " + new Date());
-				out.println("Content-type: " + contentMimeType);
-				out.println("Content-length: " + fileLength);
-				out.println(); // blank line between headers and content, very important !
-				out.flush(); // flush character output stream buffer
-				// file
-				dataOut.write(fileData, 0, fileLength);
-				dataOut.flush();
-				
-			} else {
+			if (Arrays.asList("GET", "HEAD").contains(method)) {
 
 				// GET or HEAD method
 				if (fileRequested.endsWith("/")) {
@@ -108,7 +74,6 @@ public class JavaHTTPServer implements Runnable{
                     throw new FileNotFoundException("file not found!");
                 }
                 File file =  new File(resource.toURI());
-            
 
 				int fileLength = (int) file.length();
 				String content = getContentType(fileRequested);
@@ -117,39 +82,19 @@ public class JavaHTTPServer implements Runnable{
 					byte[] fileData = readFileData(file, fileLength);
 					
 					// send HTTP Headers
-					out.println("HTTP/1.1 200 OK");
-					out.println("Server: Java HTTP Server from SSaurel : 1.0");
-					out.println("Date: " + new Date());
-					out.println("Content-type: " + content);
-					out.println("Content-length: " + fileLength);
-					out.println(); // blank line between headers and content, very important !
-					out.flush(); // flush character output stream buffer
-					
+					writeHeaders(out, fileLength, content, "HTTP/1.1 200 OK", "Server: Demo Java HTTP Server : 1.0");
+
 					dataOut.write(fileData, 0, fileLength);
 					dataOut.flush();
-				}
-				
-				if (verbose) {
-					System.out.println("File " + fileRequested + " of type " + content + " returned");
 				}
 				
 			}
 			
 		} catch (FileNotFoundException fnfe) {
-			try {
-				fileNotFound(out, dataOut);
-			} catch (IOException ioe) {
-				System.err.println("Error with file not found exception : " + ioe.getMessage());
-			} catch (URISyntaxException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-			
-		} catch (IOException ioe) {
-			System.err.println("Server error : " + ioe);
-		} catch (URISyntaxException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+			fileNotFound(out, dataOut);
+		} catch (Exception ex) {
+			System.err.println("Server error : " + ex.getMessage());
+
         } finally {
 			try {
 				in.close();
@@ -159,15 +104,23 @@ public class JavaHTTPServer implements Runnable{
 			} catch (Exception e) {
 				System.err.println("Error closing stream : " + e.getMessage());
 			} 
-			
-			if (verbose) {
-				System.out.println("Connection closed.\n");
-			}
+
 		}
 		
 		
 	}
-	
+
+	private void writeHeaders(PrintWriter out, int fileLength, String contentMimeType, String http, String server) {
+		// we send HTTP Headers with data to client
+		out.println(http);
+		out.println(server);
+		out.println("Date: " + new Date());
+		out.println("Content-type: " + contentMimeType);
+		out.println("Content-length: " + fileLength);
+		out.println(); // blank line between headers and content, very important !
+		out.flush(); // flush character output stream buffer
+	}
+
 	private byte[] readFileData(File file, int fileLength) throws IOException {
 		FileInputStream fileIn = null;
 		byte[] fileData = new byte[fileLength];
@@ -191,26 +144,25 @@ public class JavaHTTPServer implements Runnable{
 			return "text/plain";
 	}
 	
-	private void fileNotFound(PrintWriter out, OutputStream dataOut) throws IOException, URISyntaxException {
+	private void fileNotFound(PrintWriter out, OutputStream dataOut) {
 
+		try {
+			URL resource = getClass().getClassLoader().getResource(FILE_NOT_FOUND);
+			File file =  new File(resource.toURI());
 
-        URL resource = getClass().getClassLoader().getResource(FILE_NOT_FOUND);
-        File file =  new File(resource.toURI());
-                
-		int fileLength = (int) file.length();
-		String content = "text/html";
-		byte[] fileData = readFileData(file, fileLength);
-		
-		out.println("HTTP/1.1 404 File Not Found");
-		out.println("Server: Java HTTP Server from SSaurel : 1.0");
-		out.println("Date: " + new Date());
-		out.println("Content-type: " + content);
-		out.println("Content-length: " + fileLength);
-		out.println(); // blank line between headers and content, very important !
-		out.flush(); // flush character output stream buffer
-		
-		dataOut.write(fileData, 0, fileLength);
-		dataOut.flush();
+			int fileLength = (int) file.length();
+			String content = "text/html";
+			byte[] fileData = readFileData(file, fileLength);
+
+			writeHeaders(out, fileLength, content, "HTTP/1.1 404 File Not Found", "Server: Demo Java HTTP Server : 1.0");
+
+			dataOut.write(fileData, 0, fileLength);
+			dataOut.flush();
+
+		} catch (Exception ex){
+			System.err.println("Server error : " + ex.getMessage());
+		}
+
 	}
 	
 }
