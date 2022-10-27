@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -17,14 +16,14 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.StringTokenizer;
 
-public class JavaHTTPServer implements Runnable{ 
-	
+public class JavaHTTPServer implements Runnable{
+
 	static final String DEFAULT_FILE = "index.html";
 	static final String FILE_NOT_FOUND = "404.html";
 
-	// verbose mode
-	static final boolean verbose = true;
-	
+	static final String HTTP_SERVER_1_0 = "Server: Demo Java HTTP Server : 1.0";
+	static final String HTTP_OK = "HTTP/1.1 200 OK";
+
 	// Client Connection via Socket Class
 	private Socket connect;
 	
@@ -65,15 +64,7 @@ public class JavaHTTPServer implements Runnable{
                     fileRequested = fileRequested.substring(1);
                 }
 
-                if (verbose) {
-					System.out.println("File " + fileRequested + " requested ");
-				}
-				
-                URL resource = getClass().getClassLoader().getResource(fileRequested);
-                if (resource == null) {
-                    throw new FileNotFoundException("file not found!");
-                }
-                File file =  new File(resource.toURI());
+				File file = getFileFromResource(fileRequested);
 
 				int fileLength = (int) file.length();
 				String content = getContentType(fileRequested);
@@ -81,8 +72,7 @@ public class JavaHTTPServer implements Runnable{
 				if (method.equals("GET")) { // GET method so we return content
 					byte[] fileData = readFileData(file, fileLength);
 					
-					// send HTTP Headers
-					writeHeaders(out, fileLength, content, "HTTP/1.1 200 OK", "Server: Demo Java HTTP Server : 1.0");
+					writeHeaders(out, fileLength, content, HTTP_OK, HTTP_SERVER_1_0);
 
 					dataOut.write(fileData, 0, fileLength);
 					dataOut.flush();
@@ -108,6 +98,15 @@ public class JavaHTTPServer implements Runnable{
 		}
 		
 		
+	}
+
+	private File getFileFromResource(String fileRequested) throws FileNotFoundException, URISyntaxException {
+		URL resource = getClass().getClassLoader().getResource(fileRequested);
+		if (resource == null) {
+			throw new FileNotFoundException("file not found!");
+		}
+		File file =  new File(resource.toURI());
+		return file;
 	}
 
 	private void writeHeaders(PrintWriter out, int fileLength, String contentMimeType, String http, String server) {
