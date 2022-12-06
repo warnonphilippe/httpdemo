@@ -24,6 +24,8 @@ public class JavaHTTPServer implements Runnable{
 	static final String HTTP_SERVER_1_0 = "Server: Demo Java HTTP Server : 1.0";
 	static final String HTTP_OK = "HTTP/1.1 200 OK";
 
+
+
 	// Client Connection via Socket Class
 	private Socket connect;
 	
@@ -53,6 +55,7 @@ public class JavaHTTPServer implements Runnable{
 			// we get file requested
 			fileRequested = parse.nextToken().toLowerCase();
 
+			log(fileRequested);
 
 			// we support only GET and HEAD methods, we check
 			if (Arrays.asList("GET", "HEAD").contains(method)) {
@@ -98,6 +101,14 @@ public class JavaHTTPServer implements Runnable{
 		}
 		
 		
+	}
+
+	private void log(String fileRequested) {
+		System.out.println("Previous URL in ThreadLocal : " + InfosContext.getCalledUrl());
+		System.out.println("Current URL requested : " + fileRequested);
+		InfosContext.setCalledUrl(fileRequested);
+		Integer cpt = InfosShared.getInstance().increment(fileRequested);
+		System.out.println("# Appels : " + cpt);
 	}
 
 	private File getFileFromResource(String fileRequested) throws FileNotFoundException, URISyntaxException {
