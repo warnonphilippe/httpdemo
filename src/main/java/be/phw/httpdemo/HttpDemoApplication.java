@@ -29,10 +29,12 @@ public class HttpDemoApplication {
 			System.out.println("Server started.\nListening for connections on port : " + PORT + " ...\n");
 
 			ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
+
+			InfosService infosService = new InfosService();
 			
 			// we listen until user halts server execution
 			while (true) {
-				executor.execute(new JavaHTTPServer(serverConnect.accept()));
+				executor.execute(new JavaHTTPServer(serverConnect.accept(), infosService));
 			}
 			
 		} catch (IOException e) {
